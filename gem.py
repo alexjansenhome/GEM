@@ -3,10 +3,10 @@ import pandas
 import requests
 import re
 
-fetch=True
+fetch=False
 
 def filter_end_of_month(df):
-    # get end of month and most recent value only
+    # get end of month and most recent value only since early 2016
     df=df[df.index>='2016-03-01']
     newindex = []
     for i in range(0, len(df.index) - 1):
@@ -63,14 +63,18 @@ for i in range(0,len(treas.index)):
     treas.ix[i,'DGS1']=nv
     pv=nv
 
-lastdate=agg.index[-1]
-if msci.index[-1] < lastdate:
-    lastdate=msci.index[-1]
+lastdate=msci.index[-1]
 
-#treasury is always a bit behind so replace last date with last date of MSCI and AGG
-ndx=treas.index.values
-ndx[-1]=lastdate
-treas.index=ndx
+# adjust AGG and TREAS last date if less than MSCI, MSCI is most important in judging, and most volatile
+if agg.index[-1] < lastdate:
+    ndx = agg.index.values
+    ndx[-1] = lastdate
+    agg.index = ndx
+
+if treas.index[-1]<lastdate:
+    ndx=treas.index.values
+    ndx[-1]=lastdate
+    treas.index=ndx
 
 msci.index.name = 'Date'
 msci=msci[msci.index.isin(treas.index)]
@@ -143,3 +147,17 @@ print
 print ("6 month returns (%):")
 print (msci6.to_frame().T)
 print (yahoo6.to_frame().T)
+
+# if -11 is different from -12 (one goes up a lot the other down a lot), stick with that signal at switch point
+
+df = pandas.DataFrame(columns=msci.columns)
+for i in range(13):
+    df.loc[i] = [ 100*(msci[n].iloc[-1]-msci[n].iloc[-i-2])/msci[n].iloc[-i-2] for n in msci.columns]
+print(df)
+
+
+df = pandas.DataFrame(columns=yahoo.columns)
+for i in range(13):
+    df.loc[i] = [ 100*(yahoo[n].iloc[-1]-yahoo[n].iloc[-i-2])/yahoo[n].iloc[-i-2] for n in yahoo.columns]
+print(df)
+
