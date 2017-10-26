@@ -129,7 +129,10 @@ for f in funds:
     data[f]=df
 
 yahoo=data['BIL'].join(data['IVV']).join(data['VEU']).join(data['AGG'])
-yahoo.to_csv('yahoo_monthly_adjusted_close.csv')
+try:
+    yahoo.to_csv('yahoo_monthly_adjusted_close.csv')
+except:
+    print(">>>Error: could not write yahoo_monthly_adjusted_close.csv")
 
 print (msci)
 print (yahoo)
