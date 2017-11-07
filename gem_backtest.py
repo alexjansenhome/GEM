@@ -276,8 +276,8 @@ def run(bDetails, momentums, b1970, bInflationAdjusted, movingAverage, vigilant)
 # set of scenarios, -2=bonds, -1=stocks, >0=momentum window
 
 bDetails=False
-# -2=all bonds
-# -1=all stocks
+# -2=all stocks
+# -1=all bonds
 # -1,-1,-2,-2,-2 = 60 stocks/40 bonds
 # 12=GEM 12 months
 # [6,12]= 50% GEM 6 months, 50% GEM 12 months
