@@ -3,7 +3,7 @@ import pandas
 import requests
 import re
 
-fetch=False
+fetch=True
 
 def filter_end_of_month(df):
     # get end of month and most recent value only since early 2016
@@ -54,27 +54,42 @@ if fetch:
 
 treas=pandas.read_csv('DGS1.csv', parse_dates=True, index_col=0, na_values='.') # . is a NaN
 treas=treas[treas['DGS1']==treas['DGS1']] # filter out the NaN's
-treas=filter_end_of_month(treas)
+
+# GOLD (loaded here but not used here but in adaptive_allocation.py)
+if fetch:
+    r=requests.get('https://fred.stlouisfed.org/graph/fredgraph.csv?cosd=1970-01-01&mode=fred&id=GOLDPMGBD228NLBM')
+    with open('GOLD.csv','w') as data_file:
+        data_file.write(r.text)
+gold=pandas.read_csv('GOLD.csv', parse_dates=True, index_col=0, na_values='.') # . is a NaN
+gold=gold[gold['GOLDPMGBD228NLBM']==gold['GOLDPMGBD228NLBM']] # filter out the NaN's
+
+lastdate=msci.index[-1]
+
+# adjust AGG and TREAS last date if less than MSCI, MSCI is most important in judging, and most volatile
+if agg.index[-1] < lastdate:
+    # create a 1-row dataframe and append it
+    to_append=agg[-1:]
+    ndx = to_append.index.values.copy()
+    ndx[-1] = lastdate
+    to_append.index = ndx
+    agg=agg.append(to_append)
+
+if treas.index[-1]<lastdate:
+    # create a 1-row dataframe and append it
+    to_append=treas[-1:]
+    ndx = to_append.index.values.copy()
+    ndx[-1] = lastdate
+    to_append.index = ndx
+    treas=treas.append(to_append)
+
 #assume we can exchange every month, approximation but should be sufficient
+treas=filter_end_of_month(treas)
 pv=100.0
 for i in range(0,len(treas.index)):
     interest=treas.iloc[i]['DGS1']
     nv=pv*(1.+interest/(12.*100.))
     treas.ix[i,'DGS1']=nv
     pv=nv
-
-lastdate=msci.index[-1]
-
-# adjust AGG and TREAS last date if less than MSCI, MSCI is most important in judging, and most volatile
-if agg.index[-1] < lastdate:
-    ndx = agg.index.values
-    ndx[-1] = lastdate
-    agg.index = ndx
-
-if treas.index[-1]<lastdate:
-    ndx=treas.index.values
-    ndx[-1]=lastdate
-    treas.index=ndx
 
 msci.index.name = 'Date'
 msci=msci[msci.index.isin(treas.index)]
@@ -85,7 +100,6 @@ msci.columns=['MSCI_ACW_XUS','MSCI_US','AGG_BONDS','1YR_TREAS']
 msci=msci[['1YR_TREAS','MSCI_US','MSCI_ACW_XUS','AGG_BONDS']]
 
 msci.to_csv('monthly_adjusted_close.csv')
-
 
 #curl -v "https://finance.yahoo.com/quote/ACWX/history?p=ACWX" > x.txt
 #Returns cookie in header and CrumbStore (search for) crumb in x.txt
@@ -151,16 +165,14 @@ print ("6 month returns (%):")
 print (msci6.to_frame().T)
 print (yahoo6.to_frame().T)
 
-# if -11 is different from -12 (one goes up a lot the other down a lot), stick with that signal at switch point
-
 df = pandas.DataFrame(columns=msci.columns)
 for i in range(13):
-    df.loc[i] = [ 100*(msci[n].iloc[-1]-msci[n].iloc[-i-2])/msci[n].iloc[-i-2] for n in msci.columns]
+    df.loc[i+1] = [ 100*(msci[n].iloc[-1]-msci[n].iloc[-i-2])/msci[n].iloc[-i-2] for n in msci.columns]
 print(df)
 
 
 df = pandas.DataFrame(columns=yahoo.columns)
 for i in range(13):
-    df.loc[i] = [ 100*(yahoo[n].iloc[-1]-yahoo[n].iloc[-i-2])/yahoo[n].iloc[-i-2] for n in yahoo.columns]
+    df.loc[i+1] = [ 100*(yahoo[n].iloc[-1]-yahoo[n].iloc[-i-2])/yahoo[n].iloc[-i-2] for n in yahoo.columns]
 print(df)
 
