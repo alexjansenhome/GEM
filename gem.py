@@ -136,7 +136,8 @@ if fetch:
 
 data={}
 for f in funds:
-    df = pandas.read_csv(f+'.csv', thousands=',', index_col=0)
+    df = pandas.read_csv(f+'.csv', thousands=',', index_col=0, na_values='null')
+    df = df[df['Adj Close'] == df['Adj Close']]
     df.index=pandas.DatetimeIndex(df.index)
     df=filter_end_of_month(df)[['Adj Close']]
     df.columns=[f]
